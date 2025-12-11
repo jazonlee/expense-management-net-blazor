@@ -20,7 +20,7 @@ This repository contains a .NET 9 Blazor Server implementation of a Customer Cre
 From the repository root:
 
 ```powershell
-cd "C:\Users\Jason Lee\source\repos\expense-management-net-blazor"
+cd "C:\Users\<your repo>\expense-management-net-blazor"
 cd .\CustomerPortal.Web
  dotnet run
 ```
@@ -32,7 +32,7 @@ Then open the URL shown in the console (for example, `http://localhost:5044`).
 To run the automated tests:
 
 ```powershell
-cd "C:\Users\Jason Lee\source\repos\expense-management-net-blazor"
+cd "C:\Users\<your repo>\expense-management-net-blazor"
 dotnet test
 ```
 
@@ -41,7 +41,7 @@ dotnet test
 This repo is ready to be pushed to GitHub. After creating a repository on GitHub, you can connect this local repo and push:
 
 ```powershell
-cd "C:\Users\Jason Lee\source\repos\expense-management-net-blazor"
+cd "C:\Users\<your repo>\expense-management-net-blazor"
 # If not already a git repo, initialize and commit
 # git init
 # git add .
