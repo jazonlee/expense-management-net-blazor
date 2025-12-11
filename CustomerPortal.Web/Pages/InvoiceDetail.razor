@@ -1,0 +1,233 @@
+@page "/invoices/{id:guid}"
+@using CustomerPortal.Core.Application.DTOs
+@using CustomerPortal.Web.Services
+@inject InvoiceService InvoiceService
+@inject NavigationManager NavigationManager
+@inject Microsoft.JSInterop.IJSRuntime Js
+
+<h1 class="visually-hidden">Invoice Detail</h1>
+
+@if (_isLoading)
+{
+	<div class="text-center text-muted py-5">Loading invoice...</div>
+}
+else if (_error is not null)
+{
+	<div class="alert alert-danger" role="alert">@_error</div>
+}
+else if (_invoice is null)
+{
+	<div class="alert alert-warning" role="alert">Invoice not found.</div>
+}
+else
+{
+	<a href="javascript:void(0);" class="btn btn-link text-decoration-none ps-0 mb-3" @onclick="GoBack">
+		<i class="bi bi-arrow-left"></i> Back to Invoices
+	</a>
+
+	<div class="d-flex justify-content-between align-items-center mb-4">
+		<h2 class="fw-bold m-0">Invoice: @_invoice.InvoiceNumber</h2>
+		<div>
+			<button class="btn btn-outline-secondary me-2" type="button" @onclick="PrintAsync">
+				<i class="bi bi-printer"></i> Print
+			</button>
+			<button class="btn btn-outline-primary" type="button" @onclick="DownloadPdfAsync">
+				<i class="bi bi-download"></i> Download PDF
+			</button>
+		</div>
+	</div>
+
+	<div class="card p-5 portal-card">
+		<div class="invoice-header-box d-flex justify-content-between">
+			<div>
+				<h5 class="fw-bold text-primary">Credit Info</h5>
+				<div class="text-muted">Issued: @_invoice.IssuedDate:yyyy-MM-dd</div>
+				<div class="text-muted">Due: @_invoice.DueDate:yyyy-MM-dd</div>
+			</div>
+			<div class="text-end">
+				<span class="badge fs-6 px-3 py-2 @GetStatusBadgeClass(_invoice.Status)">@_invoice.Status</span>
+			</div>
+		</div>
+
+		<div class="row mb-5">
+			<div class="col-md-6">
+				<h6 class="text-muted fw-bold text-uppercase">Bill To</h6>
+				<h5 class="fw-bold">@_invoice.BillToName</h5>
+				<p class="mb-0 text-muted">
+					@((MarkupString)_invoice.BillToAddress.Replace("\n", "<br />"))
+				</p>
+			</div>
+			<div class="col-md-6 text-md-end">
+				<h6 class="text-muted fw-bold text-uppercase">Ship To</h6>
+				<h5 class="fw-bold">@_invoice.ShipToName</h5>
+				<p class="mb-0 text-muted">
+					@((MarkupString)_invoice.ShipToAddress.Replace("\n", "<br />"))
+				</p>
+			</div>
+		</div>
+
+		<h5 class="fw-bold mb-3">Line Items</h5>
+		<div class="table-responsive mb-4">
+			<table class="table table-striped custom-table">
+				<thead class="table-dark">
+					<tr>
+						<th class="text-white">DESCRIPTION</th>
+						<th class="text-white text-center">QTY</th>
+						<th class="text-white text-end">UNIT PRICE</th>
+						<th class="text-white text-end">TOTAL</th>
+					</tr>
+				</thead>
+				<tbody>
+					@if (_invoice.LineItems is null || _invoice.LineItems.Count == 0)
+					{
+						<tr>
+							<td colspan="4" class="text-center text-muted py-4">No line items.</td>
+						</tr>
+					}
+					else
+					{
+						@foreach (var item in _invoice.LineItems)
+						{
+							<tr>
+								<td>@item.Description</td>
+								<td class="text-center">@item.Quantity</td>
+								<td class="text-end">@item.UnitPrice.ToString("C")</td>
+								<td class="text-end">@item.LineTotal.ToString("C")</td>
+							</tr>
+						}
+					}
+				</tbody>
+			</table>
+		</div>
+
+		<div class="row justify-content-end mb-5">
+			<div class="col-md-5">
+				<h5 class="fw-bold mb-3">Payment Summary</h5>
+				<table class="table table-borderless">
+					<tr>
+						<td>Subtotal:</td>
+						<td class="text-end">@_invoice.SubtotalAmount.ToString("C")</td>
+					</tr>
+					<tr>
+						<td>Discount:</td>
+						<td class="text-end text-danger">-@_invoice.DiscountAmount.ToString("C")</td>
+					</tr>
+					<tr>
+						<td>Tax (8%):</td>
+						<td class="text-end">@_invoice.TaxAmount.ToString("C")</td>
+					</tr>
+					<tr class="border-top">
+						<td class="fs-5 text-dark">Total Amount Due:</td>
+						<td class="fs-5 fw-bold text-primary text-end">@_invoice.TotalAmount.ToString("C")</td>
+					</tr>
+				</table>
+				<button class="btn btn-primary w-100 py-2 mt-2" type="button" @onclick="PayNowAsync" disabled="@_isPaying">
+					@if (_isPaying)
+					{
+						<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+					}
+					Pay Now
+				</button>
+			</div>
+		</div>
+
+		<div class="bg-light p-3 rounded">
+			<h6 class="fw-bold">Notes &amp; Terms</h6>
+			<p class="small text-muted mb-0">Please ensure payment is made by the due date to avoid service interruption.</p>
+		</div>
+	</div>
+}
+
+@code {
+	[Parameter]
+	public Guid Id { get; set; }
+
+	private InvoiceDetailDto? _invoice;
+	private bool _isLoading = true;
+	private bool _isPaying;
+	private string? _error;
+
+	protected override async Task OnInitializedAsync()
+	{
+		await LoadInvoiceAsync();
+	}
+
+	private async Task LoadInvoiceAsync()
+	{
+		_isLoading = true;
+		_error = null;
+
+		try
+		{
+			_invoice = await InvoiceService.GetInvoiceDetailAsync(Id);
+			if (_invoice is null)
+			{
+				_error = "Invoice not found.";
+			}
+		}
+		catch (Exception ex)
+		{
+			_error = "Failed to load invoice detail.";
+			Console.Error.WriteLine(ex);
+		}
+		finally
+		{
+			_isLoading = false;
+		}
+	}
+
+	private void GoBack()
+	{
+		NavigationManager.NavigateTo("/invoices");
+	}
+
+	private async Task PrintAsync()
+	{
+		await Js.InvokeVoidAsync("window.print");
+	}
+
+	private async Task DownloadPdfAsync()
+	{
+		// Placeholder for future PDF download implementation
+		await Js.InvokeVoidAsync("console.log", "Download PDF not yet implemented.");
+	}
+
+	private async Task PayNowAsync()
+	{
+		if (_invoice is null || _isPaying)
+		{
+			return;
+		}
+
+		_isPaying = true;
+		_error = null;
+
+		try
+		{
+			await InvoiceService.MarkInvoicePaidOfflineAsync(_invoice.Id);
+			// Refresh invoice to reflect updated status
+			await LoadInvoiceAsync();
+		}
+		catch (Exception ex)
+		{
+			_error = "Failed to mark invoice as paid.";
+			Console.Error.WriteLine(ex);
+		}
+		finally
+		{
+			_isPaying = false;
+		}
+	}
+
+	private static string GetStatusBadgeClass(string status)
+	{
+		var s = (status ?? string.Empty).ToLowerInvariant();
+		return s switch
+		{
+			"paid" => "bg-success text-white",
+			"due" => "bg-danger text-white",
+			"overdue" => "bg-danger text-white",
+			_ => "bg-secondary text-white"
+		};
+	}
+}

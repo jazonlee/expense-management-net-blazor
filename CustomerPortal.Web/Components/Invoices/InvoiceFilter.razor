@@ -1,0 +1,52 @@
+@using CustomerPortal.Core.Application.DTOs
+
+<div class="card p-4 mb-4">
+	<h5 class="mb-3">Filter Invoices</h5>
+	<div class="row g-3">
+		<div class="col-md-3">
+			<label class="form-label small text-muted">Invoice Number</label>
+			<input type="text" class="form-control" placeholder="e.g. INV-2023-001" @bind="_filter.InvoiceNumber" />
+		</div>
+		<div class="col-md-3">
+			<label class="form-label small text-muted">Status</label>
+			<select class="form-select" @bind="_filter.Status">
+				<option value="">All Statuses</option>
+				<option>Paid</option>
+				<option>Pending</option>
+				<option>Overdue</option>
+			</select>
+		</div>
+		<div class="col-md-3">
+			<label class="form-label small text-muted">Min Amount</label>
+			<InputNumber @bind-Value="_filter.MinAmount" class="form-control" />
+		</div>
+		<div class="col-md-3">
+			<label class="form-label small text-muted">Max Amount</label>
+			<InputNumber @bind-Value="_filter.MaxAmount" class="form-control" />
+		</div>
+		<div class="col-12 text-end mt-3">
+			<button class="btn btn-link text-muted text-decoration-none me-2" type="button" @onclick="ClearFilters">Clear Filters</button>
+			<button class="btn btn-primary px-4" type="button" @onclick="ApplyFilters">Apply Filters</button>
+		</div>
+	</div>
+</div>
+
+@code {
+	[Parameter] public EventCallback<InvoiceFilterDto> OnFilterChanged { get; set; }
+
+	private readonly InvoiceFilterDto _filter = new();
+
+	private async Task ApplyFilters()
+	{
+		await OnFilterChanged.InvokeAsync(_filter);
+	}
+
+	private async Task ClearFilters()
+	{
+		_filter.InvoiceNumber = null;
+		_filter.Status = null;
+		_filter.MinAmount = null;
+		_filter.MaxAmount = null;
+		await OnFilterChanged.InvokeAsync(_filter);
+	}
+}

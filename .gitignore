@@ -1,0 +1,48 @@
+# Git ignore for Expense Management Blazor / CustomerPortal
+
+# Build outputs
+bin/
+obj/
+[Bb]uild/
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio / Rider
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet
+packages/
+*.nupkg
+**/packages/*/
+.nuget/
+
+# Test & tooling artifacts
+TestResults/
+artifacts/
+.specstory/
+.specify/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+
+# IDEs and editors
+.vscode/
+.idea/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Environment & secrets
+.env
+.env.*
+
+# Other common noise
+*.bak
+*.orig

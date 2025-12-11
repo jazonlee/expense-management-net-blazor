@@ -1,0 +1,39 @@
+@using CustomerPortal.Core.Application.DTOs
+
+<div class="card p-3 border-0 shadow-sm">
+	@if (Items is null || Items.Count == 0)
+	{
+		<div class="small text-muted">No recent activity.</div>
+	}
+	else
+	{
+		@foreach (var item in Items)
+		{
+			<div class="activity-item">
+				<div class="me-3 h4 text-muted"><i class="bi bi-check-circle"></i></div>
+				<div class="flex-grow-1">
+					<div class="fw-bold">@item.Title</div>
+					<div class="small text-muted">@item.Date.ToString("yyyy-MM-dd")</div>
+				</div>
+				<div class="text-end me-3 fw-bold">@item.AmountChange.ToString("C")</div>
+				<span class="badge-custom @GetBadgeClass(item.Status)">@item.Status.ToLowerInvariant()</span>
+			</div>
+		}
+	}
+</div>
+
+@code {
+	[Parameter] public IReadOnlyList<ActivityDto> Items { get; set; } = Array.Empty<ActivityDto>();
+
+	private string GetBadgeClass(string status)
+	{
+		return status.ToLowerInvariant() switch
+		{
+			"paid" => "badge-paid",
+			"due" => "badge-due",
+			"pending" => "badge-pending",
+			"completed" => "badge-completed",
+			_ => "badge-completed"
+		};
+	}
+}

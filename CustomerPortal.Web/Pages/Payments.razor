@@ -1,0 +1,327 @@
+@page "/payments"
+@using System.ComponentModel.DataAnnotations
+@using CustomerPortal.Core.Application.DTOs
+@using CustomerPortal.Web.Services
+@inject PaymentService PaymentService
+@inject InvoiceService InvoiceService
+@inject Microsoft.JSInterop.IJSRuntime Js
+
+<PageTitle>Payments &amp; SOA</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+	<div>
+		<h2 class="fw-bold mb-0">Payments &amp; Statement of Account</h2>
+		<p class="text-muted mb-0">Review your payment history and statements.</p>
+	</div>
+	<div>
+		<button class="btn btn-primary" type="button" @onclick="ShowPaymentModal">Make a Payment</button>
+	</div>
+</div>
+
+<div class="mb-4"></div>
+
+<div class="row">
+	<div class="col-lg-8 mb-4">
+		<div class="card p-4 mb-4">
+			<h5 class="mb-3">Filter Payments</h5>
+			<div class="row g-3 align-items-end">
+				<div class="col-md-5">
+					<label class="form-label small text-muted">From Date</label>
+					<InputDate @bind-Value="_fromDate" class="form-control" />
+				</div>
+				<div class="col-md-5">
+					<label class="form-label small text-muted">Payment Method</label>
+					<InputSelect @bind-Value="_method" class="form-select">
+						<option value="">All Methods</option>
+						<option>Credit Card</option>
+						<option>Bank Transfer</option>
+						<option>PayPal</option>
+					</InputSelect>
+				</div>
+				<div class="col-md-2">
+					<button class="btn btn-primary w-100" type="button" @onclick="ApplyFilters">Apply</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<div class="card-header bg-white py-3">
+				<h5 class="m-0">Payment History</h5>
+			</div>
+			<div class="table-responsive">
+				<table class="table custom-table mb-0">
+					<thead class="bg-light">
+						<tr>
+							<th>PAYMENT ID</th>
+							<th>DATE</th>
+							<th>AMOUNT</th>
+							<th>METHOD</th>
+							<th>OFFICIAL RECEIPT</th>
+						</tr>
+					</thead>
+					<tbody>
+						@if (_payments is null || _payments.Count == 0)
+						{
+							<tr>
+								<td colspan="5" class="text-center text-muted py-4">No payments found for the selected criteria.</td>
+							</tr>
+						}
+						else
+						{
+							@foreach (var payment in _payments)
+							{
+								<tr>
+									<td class="text-primary fw-bold">@payment.PaymentRef</td>
+									<td>@payment.Date.ToString("yyyy-MM-dd")</td>
+									<td class="fw-bold">@payment.Amount.ToString("C")</td>
+									<td>@payment.Method</td>
+									<td>
+										<button class="btn btn-sm btn-link" type="button" disabled>View Receipt</button>
+									</td>
+								</tr>
+							}
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+	<div class="col-lg-4">
+		<div class="card p-4 bg-light border-0">
+			<h5 class="fw-bold mb-3">Statement of Account</h5>
+			<p class="text-muted small mb-1">Statement Period</p>
+			<div class="bg-white p-3 rounded border mb-4">
+				<i class="bi bi-calendar-range me-2 text-primary"></i>
+				@if (_statement is null)
+				{
+					<span class="fw-bold">Not available</span>
+				}
+				else
+				{
+					<span class="fw-bold">@_statement.PeriodStart.ToString("MMM dd, yyyy") - @_statement.PeriodEnd.ToString("MMM dd, yyyy")</span>
+				}
+			</div>
+			<button class="btn btn-primary w-100 py-2 mb-2" type="button" @onclick="DownloadSoaAsync" disabled="@_isDownloading">
+				<i class="bi bi-download me-2"></i> Download SOA (PDF)
+			</button>
+			<p class="small text-muted text-center mt-2">Includes all settled and pending invoices for the selected period.</p>
+		</div>
+	</div>
+</div>
+
+@if (_showPaymentModal)
+{
+	<div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+		<div class="modal-dialog modal-lg modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Make a Payment</h5>
+					<button type="button" class="btn-close" aria-label="Close" @onclick="HidePaymentModal"></button>
+				</div>
+				<div class="modal-body">
+					<EditForm Model="_newPayment" OnValidSubmit="HandlePaymentSubmit">
+						<DataAnnotationsValidator />
+						<ValidationSummary />
+						<div class="row g-3">
+								<div class="col-md-6">
+									<label class="form-label">Apply To Invoice (optional)</label>
+									<InputSelect @bind-Value="SelectedInvoiceId" class="form-select">
+										<option value="">Select Pending Invoice</option>
+										@foreach (var invoice in _openInvoices)
+										{
+											<option value="@invoice.Id">@invoice.InvoiceNumber (@invoice.TotalAmount.ToString("C"))</option>
+										}
+									</InputSelect>
+								</div>
+
+								<div class="col-md-6">
+									<label class="form-label">Payment Reference</label>
+									<InputText class="form-control" @bind-Value="_newPayment.PaymentRef" />
+								</div>
+							<div class="col-md-3">
+								<label class="form-label">Date</label>
+								<InputDate class="form-control" @bind-Value="_newPayment.Date" />
+							</div>
+							<div class="col-md-3">
+								<label class="form-label">Amount</label>
+								<InputNumber class="form-control" @bind-Value="_newPayment.Amount" />
+							</div>
+							<div class="col-md-4">
+								<label class="form-label">Method</label>
+								<InputSelect class="form-select" @bind-Value="_newPayment.Method">
+									<option value="">Select Method</option>
+									<option>Credit Card</option>
+									<option>Bank Transfer</option>
+									<option>PayPal</option>
+								</InputSelect>
+							</div>
+						</div>
+						<div class="mt-4 d-flex justify-content-end">
+							<button type="button" class="btn btn-outline-secondary me-2" @onclick="HidePaymentModal" disabled="@_isSavingPayment">Cancel</button>
+							<button type="submit" class="btn btn-primary" disabled="@_isSavingPayment">
+								@if (_isSavingPayment)
+								{
+									<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+								}
+								Submit Payment
+							</button>
+						</div>
+					</EditForm>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal-backdrop fade show"></div>
+}
+
+@code {
+	private IReadOnlyList<PaymentDto> _payments = Array.Empty<PaymentDto>();
+	private DateTime? _fromDate;
+	private string? _method;
+	private StatementOfAccountDto? _statement;
+	private bool _isLoading;
+	private bool _isDownloading;
+	private bool _showPaymentModal;
+	private bool _isSavingPayment;
+	private NewPaymentModel _newPayment = NewPaymentModel.CreateDefault();
+	private List<InvoiceListItemDto> _openInvoices = new();
+	private Guid? _selectedInvoiceId;
+	private Guid? SelectedInvoiceId
+	{
+		get => _selectedInvoiceId;
+		set
+		{
+			_selectedInvoiceId = value;
+			OnInvoiceChanged();
+		}
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		await LoadDataAsync();
+	}
+
+	private async Task LoadDataAsync()
+	{
+		_isLoading = true;
+		try
+		{
+			var customerId = Guid.Empty; // TODO: replace with real current customer
+			_payments = await PaymentService.GetPaymentsAsync(customerId, _fromDate, null, _method);
+			_statement = await PaymentService.GetCurrentStatementAsync(customerId);
+			_openInvoices = (await InvoiceService.GetOpenInvoicesAsync(customerId)).ToList();
+		}
+		finally
+		{
+			_isLoading = false;
+		}
+	}
+
+	private Task ApplyFilters() => LoadDataAsync();
+
+	private async Task DownloadSoaAsync()
+	{
+		if (_statement is null)
+		{
+			var customerId = Guid.Empty;
+			_statement = await PaymentService.GetCurrentStatementAsync(customerId);
+		}
+
+		_isDownloading = true;
+		try
+		{
+			var url = $"/soa/pdf?from={_statement!.PeriodStart:yyyy-MM-dd}&to={_statement.PeriodEnd:yyyy-MM-dd}";
+			await Js.InvokeVoidAsync("open", url, "_blank");
+		}
+		finally
+		{
+			_isDownloading = false;
+		}
+	}
+
+	private void ShowPaymentModal()
+	{
+		_newPayment = NewPaymentModel.CreateDefault();
+		_selectedInvoiceId = null;
+		_showPaymentModal = true;
+	}
+
+	private void HidePaymentModal()
+	{
+		_showPaymentModal = false;
+	}
+
+	private async Task HandlePaymentSubmit()
+	{
+		if (_isSavingPayment)
+		{
+			return;
+		}
+
+		_isSavingPayment = true;
+		try
+		{
+			var customerId = Guid.Empty; // TODO: replace with real current customer
+			var dto = new CreatePaymentDto
+			{
+				PaymentRef = _newPayment.PaymentRef!,
+				Date = _newPayment.Date,
+				Amount = _newPayment.Amount,
+				Method = _newPayment.Method!
+			};
+
+			await PaymentService.CreatePaymentAsync(customerId, dto);
+			if (_selectedInvoiceId is Guid invoiceId && invoiceId != Guid.Empty)
+			{
+				await InvoiceService.MarkInvoicePaidOfflineAsync(invoiceId);
+			}
+			_showPaymentModal = false;
+			await LoadDataAsync();
+		}
+		finally
+		{
+			_isSavingPayment = false;
+		}
+	}
+
+	private void OnInvoiceChanged()
+	{
+		if (_selectedInvoiceId is Guid invoiceId && invoiceId != Guid.Empty)
+		{
+			var invoice = _openInvoices.Find(x => x.Id == invoiceId);
+			if (invoice is not null)
+			{
+				_newPayment.Amount = invoice.TotalAmount;
+				if (string.IsNullOrWhiteSpace(_newPayment.PaymentRef))
+				{
+					_newPayment.PaymentRef = invoice.InvoiceNumber;
+				}
+			}
+		}
+	}
+
+	private sealed class NewPaymentModel
+	{
+		[Required]
+		public string? PaymentRef { get; set; }
+
+		[Required]
+		public DateTime Date { get; set; }
+
+		[Range(0.01, double.MaxValue)]
+		public decimal Amount { get; set; }
+
+		[Required]
+		public string? Method { get; set; }
+
+		public static NewPaymentModel CreateDefault()
+		{
+			return new NewPaymentModel
+			{
+				Date = DateTime.Today,
+				Method = "Credit Card"
+			};
+		}
+	}
+}

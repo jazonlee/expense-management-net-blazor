@@ -1,0 +1,220 @@
+@page "/invoices"
+@using System.ComponentModel.DataAnnotations
+@using CustomerPortal.Core.Application.DTOs
+@inject CustomerPortal.Web.Services.InvoiceService InvoiceService
+
+<PageTitle>Invoices</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+	<div>
+		<h2 class="fw-bold mb-0">Invoices List</h2>
+		<p class="text-muted mb-0">View and manage all your invoices in one place.</p>
+	</div>
+	<div>
+		<button class="btn btn-primary" type="button" @onclick="ShowNewInvoiceModal">New Invoice</button>
+	</div>
+</div>
+
+<div class="mb-4"></div>
+
+<InvoiceFilter OnFilterChanged="HandleFilterChanged" />
+
+<InvoiceTable Model="_pagedInvoices" OnPageChanged="HandlePageChanged" />
+
+@if (_showNewInvoiceModal)
+{
+	<div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+		<div class="modal-dialog modal-lg modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">New Invoice</h5>
+					<button type="button" class="btn-close" aria-label="Close" @onclick="HideNewInvoiceModal"></button>
+				</div>
+				<div class="modal-body">
+					<EditForm Model="_newInvoice" OnValidSubmit="HandleNewInvoiceSubmit">
+						<DataAnnotationsValidator />
+						<ValidationSummary />
+						<div class="row g-3">
+							<div class="col-md-6">
+								<label class="form-label">Invoice Number</label>
+								<InputText class="form-control" @bind-Value="_newInvoice.InvoiceNumber" />
+							</div>
+							<div class="col-md-3">
+								<label class="form-label">Issued Date</label>
+								<InputDate class="form-control" @bind-Value="_newInvoice.IssuedDate" />
+							</div>
+							<div class="col-md-3">
+								<label class="form-label">Due Date</label>
+								<InputDate class="form-control" @bind-Value="_newInvoice.DueDate" />
+							</div>
+							<div class="col-md-4">
+								<label class="form-label">Status</label>
+								<InputSelect class="form-select" @bind-Value="_newInvoice.Status">
+									<option value="Pending">Pending</option>
+									<option value="Paid">Paid</option>
+									<option value="Overdue">Overdue</option>
+								</InputSelect>
+							</div>
+							<div class="col-md-4">
+								<label class="form-label">Subtotal Amount</label>
+								<InputNumber class="form-control" @bind-Value="_newInvoice.SubtotalAmount" />
+							</div>
+							<div class="col-md-4">
+								<label class="form-label">Discount Amount</label>
+								<InputNumber class="form-control" @bind-Value="_newInvoice.DiscountAmount" />
+							</div>
+							<div class="col-md-4">
+								<label class="form-label">Tax Amount</label>
+								<InputNumber class="form-control" @bind-Value="_newInvoice.TaxAmount" />
+							</div>
+							<div class="col-md-4">
+								<label class="form-label">Total Amount</label>
+								<InputNumber class="form-control" @bind-Value="_newInvoice.TotalAmount" />
+							</div>
+						</div>
+						<div class="mt-4 d-flex justify-content-end">
+							<button type="button" class="btn btn-outline-secondary me-2" @onclick="HideNewInvoiceModal" disabled="@_isSaving">Cancel</button>
+							<button type="submit" class="btn btn-primary" disabled="@_isSaving">
+								@if (_isSaving)
+								{
+									<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+								}
+								Save Invoice
+							</button>
+						</div>
+					</EditForm>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal-backdrop fade show"></div>
+}
+
+@code {
+	private PagedInvoiceListDto? _pagedInvoices;
+	private InvoiceFilterDto _currentFilter = new();
+	private int _page = 1;
+	private const int PageSize = 10;
+	private bool _showNewInvoiceModal;
+	private bool _isSaving;
+	private NewInvoiceModel _newInvoice = NewInvoiceModel.CreateDefault();
+
+	protected override async Task OnInitializedAsync()
+	{
+		await LoadInvoicesAsync();
+	}
+
+	private void ShowNewInvoiceModal()
+	{
+		_newInvoice = NewInvoiceModel.CreateDefault();
+		_showNewInvoiceModal = true;
+	}
+
+	private void HideNewInvoiceModal()
+	{
+		_showNewInvoiceModal = false;
+	}
+
+	private async Task HandleFilterChanged(InvoiceFilterDto filter)
+	{
+		_currentFilter = new InvoiceFilterDto
+		{
+			InvoiceNumber = filter.InvoiceNumber,
+			Status = filter.Status,
+			MinAmount = filter.MinAmount,
+			MaxAmount = filter.MaxAmount
+		};
+		_page = 1;
+		await LoadInvoicesAsync();
+	}
+
+	private async Task HandlePageChanged(int page)
+	{
+		if (page <= 0 || (_pagedInvoices is not null && page > _pagedInvoices.TotalPages))
+		{
+			return;
+		}
+
+		_page = page;
+		await LoadInvoicesAsync();
+	}
+
+	private async Task LoadInvoicesAsync()
+	{
+		// TODO: replace with real current-customer resolution once authentication is wired.
+		var customerId = Guid.Empty;
+		_pagedInvoices = await InvoiceService.GetInvoicesAsync(customerId, _currentFilter, _page, PageSize);
+	}
+
+	private async Task HandleNewInvoiceSubmit()
+	{
+		if (_isSaving)
+		{
+			return;
+		}
+
+		_isSaving = true;
+		try
+		{
+			var customerId = Guid.Empty; // TODO: replace with real current customer
+			var dto = new CreateInvoiceDto
+			{
+				InvoiceNumber = _newInvoice.InvoiceNumber!,
+				IssuedDate = _newInvoice.IssuedDate,
+				DueDate = _newInvoice.DueDate,
+				Status = _newInvoice.Status!,
+				SubtotalAmount = _newInvoice.SubtotalAmount,
+				DiscountAmount = _newInvoice.DiscountAmount,
+				TaxAmount = _newInvoice.TaxAmount,
+				TotalAmount = _newInvoice.TotalAmount
+			};
+
+			await InvoiceService.CreateInvoiceAsync(customerId, dto);
+			_showNewInvoiceModal = false;
+			_page = 1;
+			await LoadInvoicesAsync();
+		}
+		finally
+		{
+			_isSaving = false;
+		}
+	}
+
+	private sealed class NewInvoiceModel
+	{
+		[Required]
+		public string? InvoiceNumber { get; set; }
+
+		[Required]
+		public DateTime IssuedDate { get; set; }
+
+		[Required]
+		public DateTime DueDate { get; set; }
+
+		[Required]
+		public string? Status { get; set; }
+
+		[Range(0, double.MaxValue)]
+		public decimal SubtotalAmount { get; set; }
+
+		[Range(0, double.MaxValue)]
+		public decimal DiscountAmount { get; set; }
+
+		[Range(0, double.MaxValue)]
+		public decimal TaxAmount { get; set; }
+
+		[Range(0, double.MaxValue)]
+		public decimal TotalAmount { get; set; }
+
+		public static NewInvoiceModel CreateDefault()
+		{
+			var today = DateTime.Today;
+			return new NewInvoiceModel
+			{
+				IssuedDate = today,
+				DueDate = today.AddDays(30),
+				Status = "Pending"
+			};
+		}
+	}
+}

@@ -1,0 +1,346 @@
+openapi: 3.0.3
+info:
+  title: Customer Credit Portal Internal API
+  version: 0.1.0
+  description: |
+    Internal service-layer contracts for the Customer Credit Portal feature.
+    These endpoints are intended for use by the Blazor Server UI and any
+    internal consumers within the Expense Management system.
+servers:
+  - url: https://localhost:5001
+    description: Local development (example)
+
+paths:
+  /api/dashboard:
+    get:
+      summary: Get dashboard summary for current customer
+      operationId: getDashboardSummary
+      responses:
+        '200':
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSummaryDto'
+
+  /api/dashboard/activity:
+    get:
+      summary: Get recent activity feed for current customer
+      operationId: getRecentActivity
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of activity items to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Recent activity list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ActivityDto'
+
+  /api/invoices:
+    get:
+      summary: Get invoices for current customer with filters and pagination
+      operationId: getInvoices
+      parameters:
+        - name: invoiceNumber
+          in: query
+          schema:
+            type: string
+          description: Optional invoice number filter (exact or partial match)
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Pending, Paid, Overdue]
+          description: Optional invoice status filter
+        - name: minAmount
+          in: query
+          schema:
+            type: number
+            format: decimal
+          description: Optional minimum invoice amount
+        - name: maxAmount
+          in: query
+          schema:
+            type: number
+            format: decimal
+          description: Optional maximum invoice amount
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number (1-based)
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+          description: Page size
+      responses:
+        '200':
+          description: Paged list of invoices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedInvoiceListDto'
+
+  /api/invoices/{invoiceId}:
+    get:
+      summary: Get a single invoice by ID for current customer
+      operationId: getInvoiceById
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Invoice identifier
+      responses:
+        '200':
+          description: Invoice detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceDetailDto'
+        '404':
+          description: Invoice not found for current customer
+
+  /api/invoices/{invoiceId}/pay:
+    post:
+      summary: Mark an invoice as paid via offline process
+      operationId: payInvoiceOffline
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+      responses:
+        '200':
+          description: Invoice successfully marked as paid (offline)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceDetailDto'
+        '400':
+          description: Invalid request (e.g., already fully paid)
+        '404':
+          description: Invoice not found for current customer
+
+  /api/payments:
+    get:
+      summary: Get payments for current customer with filters
+      operationId: getPayments
+      parameters:
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Optional start date (inclusive)
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Optional end date (inclusive)
+        - name: method
+          in: query
+          schema:
+            type: string
+            enum: [CreditCard, BankTransfer]
+          description: Optional payment method filter
+      responses:
+        '200':
+          description: Payment history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentDto'
+
+  /api/statements/current:
+    get:
+      summary: Download current-month statement of account PDF
+      operationId: downloadCurrentStatement
+      responses:
+        '200':
+          description: Statement of account PDF for current calendar month
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+components:
+  schemas:
+    DashboardSummaryDto:
+      type: object
+      properties:
+        availableCredit:
+          type: number
+          format: decimal
+        creditLimit:
+          type: number
+          format: decimal
+        dueBalance:
+          type: number
+          format: decimal
+      required: [availableCredit, creditLimit, dueBalance]
+
+    ActivityDto:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        date:
+          type: string
+          format: date-time
+        amountChange:
+          type: number
+          format: decimal
+        status:
+          type: string
+        activityType:
+          type: string
+      required: [id, title, date, status, activityType]
+
+    InvoiceListItemDto:
+      type: object
+      properties:
+        id:
+          type: string
+        invoiceNumber:
+          type: string
+        issuedDate:
+          type: string
+          format: date
+        dueDate:
+          type: string
+          format: date
+        amount:
+          type: number
+          format: decimal
+        status:
+          type: string
+      required: [id, invoiceNumber, issuedDate, dueDate, amount, status]
+
+    PagedInvoiceListDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceListItemDto'
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalCount:
+          type: integer
+      required: [items, page, pageSize, totalCount]
+
+    InvoiceLineItemDto:
+      type: object
+      properties:
+        description:
+          type: string
+        quantity:
+          type: number
+          format: decimal
+        unitPrice:
+          type: number
+          format: decimal
+        lineTotal:
+          type: number
+          format: decimal
+      required: [description, quantity, unitPrice, lineTotal]
+
+    InvoiceDetailDto:
+      type: object
+      properties:
+        id:
+          type: string
+        invoiceNumber:
+          type: string
+        issuedDate:
+          type: string
+          format: date
+        dueDate:
+          type: string
+          format: date
+        status:
+          type: string
+        billTo:
+          type: object
+          additionalProperties: true
+        shipTo:
+          type: object
+          additionalProperties: true
+        lineItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceLineItemDto'
+        subtotal:
+          type: number
+          format: decimal
+        discount:
+          type: number
+          format: decimal
+        tax:
+          type: number
+          format: decimal
+        total:
+          type: number
+          format: decimal
+      required:
+        - id
+        - invoiceNumber
+        - issuedDate
+        - dueDate
+        - status
+        - billTo
+        - shipTo
+        - lineItems
+        - subtotal
+        - discount
+        - tax
+        - total
+
+    PaymentDto:
+      type: object
+      properties:
+        id:
+          type: string
+        paymentRef:
+          type: string
+        date:
+          type: string
+          format: date
+        amount:
+          type: number
+          format: decimal
+        method:
+          type: string
+        receiptUrl:
+          type: string
+          format: uri
+      required: [id, paymentRef, date, amount, method]

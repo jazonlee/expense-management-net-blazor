@@ -1,0 +1,80 @@
+@using CustomerPortal.Core.Application.DTOs
+
+<div class="card">
+	<div class="card-header bg-white py-3">
+		<h5 class="m-0">Your Invoices</h5>
+	</div>
+	<div class="table-responsive">
+		<table class="table custom-table mb-0">
+			<thead class="bg-light">
+				<tr>
+					<th>Invoice Number</th>
+					<th>Date Issued</th>
+					<th>Due Date</th>
+					<th>Amount</th>
+					<th>Status</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				@if (Model?.Items is null || Model.Items.Count == 0)
+				{
+					<tr>
+						<td colspan="6" class="text-center text-muted py-4">No invoices found for the selected criteria.</td>
+					</tr>
+				}
+				else
+				{
+					@foreach (var invoice in Model.Items)
+					{
+						<tr>
+							<td>
+								<NavLink href="@($"/invoices/{invoice.Id}")" class="fw-bold text-decoration-none">@invoice.InvoiceNumber</NavLink>
+							</td>
+							<td>@invoice.IssuedDate.ToString("yyyy-MM-dd")</td>
+							<td>@invoice.DueDate.ToString("yyyy-MM-dd")</td>
+							<td class="fw-bold">@invoice.TotalAmount.ToString("C")</td>
+							<td>
+								<span class="badge-custom @GetStatusBadge(invoice.Status)">@invoice.Status</span>
+							</td>
+							<td>
+								<button class="btn btn-sm btn-outline-secondary" type="button"><i class="bi bi-three-dots"></i></button>
+							</td>
+						</tr>
+					}
+				}
+			</tbody>
+		</table>
+	</div>
+	@if (Model is not null && Model.TotalPages > 1)
+	{
+		<nav class="p-3 d-flex justify-content-end" aria-label="Invoices pagination">
+			<ul class="pagination mb-0">
+				<li class="page-item @(Model.Page <= 1 ? "disabled" : string.Empty)">
+					<button class="page-link" type="button" @onclick="() => ChangePage(Model.Page - 1)">Previous</button>
+				</li>
+				<li class="page-item disabled">
+					<span class="page-link">Page @Model.Page of @Model.TotalPages</span>
+				</li>
+				<li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : string.Empty)">
+					<button class="page-link" type="button" @onclick="() => ChangePage(Model.Page + 1)">Next</button>
+				</li>
+			</ul>
+		</nav>
+	}
+</div>
+
+@code {
+	[Parameter] public PagedInvoiceListDto? Model { get; set; }
+	[Parameter] public EventCallback<int> OnPageChanged { get; set; }
+
+	private string GetStatusBadge(string status) => status.ToLowerInvariant() switch
+	{
+		"paid" => "badge-paid",
+		"pending" => "badge-pending",
+		"overdue" => "badge-overdue",
+		_ => "badge-pending"
+	};
+
+	private Task ChangePage(int page) => OnPageChanged.InvokeAsync(page);
+}

@@ -1,0 +1,34 @@
+@inherits LayoutComponentBase
+
+<div id="sidebar" class="@(_sidebarActive ? "active" : string.Empty)">
+	<div class="sidebar-header"><i class="bi bi-building"></i> Credit Portal</div>
+	<ul class="list-unstyled">
+		<li><NavLink href="/dashboard" class="nav-link" Match="NavLinkMatch.All"><i class="bi bi-speedometer2"></i> Dashboard</NavLink></li>
+		<li><NavLink href="/invoices" class="nav-link"><i class="bi bi-file-earmark-text"></i> Invoices</NavLink></li>
+		<li><NavLink href="/payments" class="nav-link"><i class="bi bi-credit-card"></i> Payments &amp; SOA</NavLink></li>
+	</ul>
+	<div class="p-4 small text-muted fixed-bottom" style="width:260px;">©2025 Customer Credit Portal.</div>
+</div>
+
+<div id="content" class="@(_sidebarActive ? "active" : string.Empty)">
+	<header class="d-flex justify-content-end align-items-center mb-4 pb-3 border-bottom">
+		<button id="sidebarCollapse" class="btn btn-light d-lg-none me-auto" @onclick="ToggleSidebar"><i class="bi bi-list"></i></button>
+		<div class="d-flex align-items-center">
+			<span class="me-3 fw-bold">Justin Mason</span>
+			<img src="https://i.pravatar.cc/150?img=11" alt="User" class="rounded-circle border border-2 border-white shadow-sm" style="width:40px;height:40px;" />
+		</div>
+	</header>
+
+	<main>
+		@Body
+	</main>
+</div>
+
+@code {
+	private bool _sidebarActive;
+
+	private void ToggleSidebar()
+	{
+		_sidebarActive = !_sidebarActive;
+	}
+}

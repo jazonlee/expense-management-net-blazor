@@ -1,0 +1,17 @@
+<div class="stat-card">
+	<i class="@IconCss stat-icon"></i>
+	<div class="small text-muted">@Label</div>
+	<div class="stat-value @ValueCss">@Value</div>
+	@if (!string.IsNullOrWhiteSpace(Description))
+	{
+		<div class="small text-muted">@Description</div>
+	}
+</div>
+
+@code {
+	[Parameter] public string Label { get; set; } = string.Empty;
+	[Parameter] public string Value { get; set; } = string.Empty;
+	[Parameter] public string? Description { get; set; }
+	[Parameter] public string IconCss { get; set; } = string.Empty;
+	[Parameter] public string ValueCss { get; set; } = string.Empty;
+}

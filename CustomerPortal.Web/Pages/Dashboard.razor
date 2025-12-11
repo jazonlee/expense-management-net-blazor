@@ -1,0 +1,240 @@
+@page "/dashboard"
+@using System.ComponentModel.DataAnnotations
+@using CustomerPortal.Core.Application.DTOs
+@inject CustomerPortal.Web.Services.DashboardService DashboardService
+@inject CustomerPortal.Web.Services.PaymentService PaymentService
+@inject CustomerPortal.Web.Services.InvoiceService InvoiceService
+
+<PageTitle>Dashboard</PageTitle>
+
+<h2 class="mb-4 fw-bold">Dashboard</h2>
+
+<div class="row g-4 mb-4">
+	<div class="col-md-4">
+		<StatsCard Label="Available Credit"
+			Value="@FormatCurrency(Summary?.AvailableCredit)"
+			Description="Remaining credit for purchases."
+			IconCss="bi bi-wallet2"
+			ValueCss="text-blue" />
+	</div>
+	<div class="col-md-4">
+		<StatsCard Label="Credit Limit"
+			Value="@FormatCurrency(Summary?.CreditLimit)"
+			Description="Maximum allowed credit."
+			IconCss="bi bi-bank"
+			ValueCss="text-blue" />
+	</div>
+	<div class="col-md-4">
+		<StatsCard Label="Due Balance"
+			Value="@FormatCurrency(Summary?.DueBalance)"
+			Description="Upcoming or outstanding payments."
+			IconCss="bi bi-exclamation-circle"
+			ValueCss="text-red" />
+	</div>
+</div>
+
+<div class="row g-3 mb-5">
+	<div class="col-md-4">
+		<NavLink href="/invoices" class="btn btn-action text-center text-decoration-none">View Invoices</NavLink>
+	</div>
+	<div class="col-md-4">
+		<button class="btn-action" type="button" @onclick="ShowPaymentModal">Make a Payment</button>
+	</div>
+	<div class="col-md-4">
+		<NavLink href="/payments" class="btn btn-action text-center text-decoration-none">View Statement</NavLink>
+	</div>
+</div>
+
+<div class="row">
+	<div class="col-lg-7 mb-4">
+		<h4 class="mb-3">Recent Activity</h4>
+		<ActivityList Items="Activity" />
+	</div>
+	<div class="col-lg-5 mb-4">
+		<h4 class="mb-3">Important Notices</h4>
+		<div class="notice-card"><span class="notice-title">Upcoming System Maintenance</span><p class="small mb-0 text-muted">Our services may be briefly interrupted during scheduled maintenance windows.</p></div>
+	</div>
+</div>
+
+@if (_showPaymentModal)
+{
+	<div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+		<div class="modal-dialog modal-lg modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Make a Payment</h5>
+					<button type="button" class="btn-close" aria-label="Close" @onclick="HidePaymentModal"></button>
+				</div>
+				<div class="modal-body">
+					<EditForm Model="_newPayment" OnValidSubmit="HandlePaymentSubmit">
+						<DataAnnotationsValidator />
+						<ValidationSummary />
+						<div class="row g-3">
+							<div class="col-md-8">
+								<label class="form-label">Apply To Invoice</label>
+								<InputSelect @bind-Value="SelectedInvoiceId" class="form-select">
+									<option value="">Select Pending Invoice</option>
+									@foreach (var invoice in _openInvoices)
+									{
+										<option value="@invoice.Id">@invoice.InvoiceNumber (@invoice.TotalAmount.ToString("C"))</option>
+									}
+								</InputSelect>
+							</div>
+							<div class="col-md-6">
+								<label class="form-label">Payment Reference</label>
+								<InputText class="form-control" @bind-Value="_newPayment.PaymentRef" />
+							</div>
+							<div class="col-md-3">
+								<label class="form-label">Date</label>
+								<InputDate class="form-control" @bind-Value="_newPayment.Date" />
+							</div>
+							<div class="col-md-3">
+								<label class="form-label">Amount</label>
+								<InputNumber class="form-control" @bind-Value="_newPayment.Amount" />
+							</div>
+							<div class="col-md-4">
+								<label class="form-label">Method</label>
+								<InputSelect class="form-select" @bind-Value="_newPayment.Method">
+									<option value="">Select Method</option>
+									<option>Credit Card</option>
+									<option>Bank Transfer</option>
+									<option>PayPal</option>
+								</InputSelect>
+							</div>
+						</div>
+						<div class="mt-4 d-flex justify-content-end">
+							<button type="button" class="btn btn-outline-secondary me-2" @onclick="HidePaymentModal" disabled="@_isSubmittingPayment">Cancel</button>
+							<button type="submit" class="btn btn-primary" disabled="@_isSubmittingPayment">
+								@if (_isSubmittingPayment)
+								{
+									<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+								}
+								Submit Payment
+							</button>
+						</div>
+					</EditForm>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal-backdrop fade show"></div>
+}
+
+@code {
+	private DashboardSummaryDto? Summary { get; set; }
+	private IReadOnlyList<ActivityDto> Activity { get; set; } = Array.Empty<ActivityDto>();
+	private bool _showPaymentModal;
+	private bool _isSubmittingPayment;
+	private NewPaymentModel _newPayment = NewPaymentModel.CreateDefault();
+	private List<InvoiceListItemDto> _openInvoices = new();
+	private Guid? _selectedInvoiceId;
+	private Guid? SelectedInvoiceId
+	{
+		get => _selectedInvoiceId;
+		set
+		{
+			_selectedInvoiceId = value;
+			OnInvoiceChanged();
+		}
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		// TODO: replace with real current-customer resolution once authentication is wired.
+		var customerId = Guid.Empty;
+		Summary = await DashboardService.GetSummaryAsync(customerId);
+		Activity = await DashboardService.GetRecentActivityAsync(customerId, 10);
+		_openInvoices = (await InvoiceService.GetOpenInvoicesAsync(customerId)).ToList();
+	}
+
+	private void ShowPaymentModal()
+	{
+		_newPayment = NewPaymentModel.CreateDefault();
+		_selectedInvoiceId = null;
+		_showPaymentModal = true;
+	}
+
+	private void HidePaymentModal()
+	{
+		_showPaymentModal = false;
+	}
+
+	private async Task HandlePaymentSubmit()
+	{
+		if (_isSubmittingPayment)
+		{
+			return;
+		}
+
+		_isSubmittingPayment = true;
+		try
+		{
+			var customerId = Guid.Empty; // TODO: replace with real current customer
+			var dto = new CreatePaymentDto
+			{
+				PaymentRef = _newPayment.PaymentRef!,
+				Date = _newPayment.Date,
+				Amount = _newPayment.Amount,
+				Method = _newPayment.Method!
+			};
+
+			await PaymentService.CreatePaymentAsync(customerId, dto);
+			if (_selectedInvoiceId is Guid invoiceId && invoiceId != Guid.Empty)
+			{
+				await InvoiceService.MarkInvoicePaidOfflineAsync(invoiceId);
+			}
+			_showPaymentModal = false;
+			Summary = await DashboardService.GetSummaryAsync(customerId);
+			Activity = await DashboardService.GetRecentActivityAsync(customerId, 10);
+		}
+		finally
+		{
+			_isSubmittingPayment = false;
+		}
+	}
+
+	private void OnInvoiceChanged()
+	{
+		if (_selectedInvoiceId is Guid invoiceId && invoiceId != Guid.Empty)
+		{
+			var invoice = _openInvoices.Find(x => x.Id == invoiceId);
+			if (invoice is not null)
+			{
+				_newPayment.Amount = invoice.TotalAmount;
+				if (string.IsNullOrWhiteSpace(_newPayment.PaymentRef))
+				{
+					_newPayment.PaymentRef = invoice.InvoiceNumber;
+				}
+			}
+		}
+	}
+
+	private static string FormatCurrency(decimal? value)
+	{
+		return value.HasValue ? value.Value.ToString("C") : "-";
+	}
+
+	private sealed class NewPaymentModel
+	{
+		[Required]
+		public string? PaymentRef { get; set; }
+
+		[Required]
+		public DateTime Date { get; set; }
+
+		[Range(0.01, double.MaxValue)]
+		public decimal Amount { get; set; }
+
+		[Required]
+		public string? Method { get; set; }
+
+		public static NewPaymentModel CreateDefault()
+		{
+			return new NewPaymentModel
+			{
+				Date = DateTime.Today,
+				Method = "Credit Card"
+			};
+		}
+	}
+}

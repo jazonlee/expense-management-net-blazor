@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Customer Credit Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --bg-body: #f8f9fa; --bg-white: #ffffff; --text-dark: #212529; --text-muted: #6c757d;
+            --primary-blue: #0d6efd; --border-color: #dee2e6;
+            --status-paid-bg: #e8f5e9; --status-paid-text: #198754;
+            --status-due-bg: #ffebeb; --status-due-text: #dc3545;
+            --status-pending-bg: #fff3cd; --status-pending-text: #856404;
+            --status-completed-bg: #e3f2fd; --status-completed-text: #0d6efd;
+            --notice-bg: #e7f1ff; --notice-border: #0d6efd;
+        }
+        body { background-color: var(--bg-body); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height: 100vh; }
+        
+        /* Sidebar */
+        #sidebar { min-width: 260px; max-width: 260px; background: var(--bg-white); border-right: 1px solid var(--border-color); min-height: 100vh; position: fixed; z-index: 1000; transition: 0.3s; }
+        #sidebar.active { margin-left: -260px; }
+        .sidebar-header { padding: 20px; font-weight: bold; border-bottom: 1px solid var(--border-color); }
+        #sidebar ul { padding: 20px 0; }
+        #sidebar ul li a { padding: 15px 25px; display: block; color: var(--text-dark); text-decoration: none; display: flex; align-items: center; }
+        #sidebar ul li a:hover, #sidebar ul li a.active { background: #f1f3f5; color: var(--primary-blue); font-weight: 600; }
+        #sidebar ul li a i { margin-right: 15px; font-size: 1.2rem; }
+
+        /* Content */
+        #content { width: 100%; margin-left: 260px; padding: 30px; transition: 0.3s; }
+        #content.active { margin-left: 0; }
+        
+        /* Stats & Cards */
+        .stat-card { background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 25px; position: relative; height: 100%; }
+        .stat-value { font-size: 2rem; font-weight: 700; margin: 10px 0; }
+        .text-blue { color: #007bff; } .text-red { color: #dc3545; }
+        .stat-icon { position: absolute; top: 25px; right: 25px; font-size: 1.5rem; color: var(--text-muted); }
+        .btn-action { width: 100%; padding: 12px; border: 1px solid var(--border-color); background: white; color: var(--primary-blue); font-weight: 500; border-radius: 6px; }
+        .btn-action:hover { background-color: #f8f9fa; }
+
+        /* Activity & Notices */
+        .activity-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; }
+        .badge-custom { padding: 5px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+        .badge-paid { background: var(--status-paid-bg); color: var(--status-paid-text); }
+        .badge-due { background: var(--status-due-bg); color: var(--status-due-text); }
+        .badge-completed { background: var(--status-completed-bg); color: var(--status-completed-text); }
+        .badge-pending { background: var(--status-pending-bg); color: var(--status-pending-text); }
+        .notice-card { background: var(--notice-bg); border-left: 4px solid var(--notice-border); padding: 15px; margin-bottom: 15px; border-radius: 4px; }
+        .notice-title { color: var(--primary-blue); font-weight: 600; display: block; margin-bottom: 5px; }
+
+        @media (max-width: 992px) { #sidebar { margin-left: -260px; } #sidebar.active { margin-left: 0; } #content { margin-left: 0; } }
+    </style>
+</head>
+<body>
+    <nav id="sidebar">
+        <div class="sidebar-header"><i class="bi bi-building"></i> Credit Portal</div>
+        <ul class="list-unstyled">
+            <li><a href="dashboard.html" class="active"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li><a href="invoices.html"><i class="bi bi-file-earmark-text"></i> Invoices</a></li>
+            <li><a href="payments.html"><i class="bi bi-credit-card"></i> Payments & SOA</a></li>
+        </ul>
+        <div class="p-4 small text-muted fixed-bottom" style="width:260px;">©2025 Customer Credit Portal.</div>
+    </nav>
+
+    <div id="content">
+        <header class="d-flex justify-content-end align-items-center mb-4 pb-3 border-bottom">
+            <button id="sidebarCollapse" class="btn btn-light d-lg-none me-auto"><i class="bi bi-list"></i></button>
+            <div class="d-flex align-items-center">
+                <span class="me-3 fw-bold">Justin Mason</span>
+                <img src="https://i.pravatar.cc/150?img=11" alt="User" class="rounded-circle border border-2 border-white shadow-sm" style="width:40px;height:40px;">
+            </div>
+        </header>
+
+        <h2 class="mb-4 fw-bold">Dashboard</h2>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <i class="bi bi-wallet2 stat-icon"></i>
+                    <div class="small text-muted">Available Credit</div>
+                    <div class="stat-value text-blue">$15,200.00</div>
+                    <div class="small text-muted">Remaining credit for purchases.</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <i class="bi bi-bank stat-icon"></i>
+                    <div class="small text-muted">Credit Limit</div>
+                    <div class="stat-value text-blue">$20,000.00</div>
+                    <div class="small text-muted">Maximum allowed credit.</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <i class="bi bi-exclamation-circle stat-icon"></i>
+                    <div class="small text-muted">Due Balance</div>
+                    <div class="stat-value text-red">$1,350.00</div>
+                    <div class="small text-muted">Payment due on Sep 15.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-5">
+            <div class="col-md-4"><a href="invoices.html" class="btn btn-action text-center text-decoration-none">View Invoices</a></div>
+            <div class="col-md-4"><button class="btn-action">Make a Payment</button></div>
+            <div class="col-md-4"><a href="payments.html" class="btn btn-action text-center text-decoration-none">View Statement</a></div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-7 mb-4">
+                <h4 class="mb-3">Recent Activity</h4>
+                <div class="card p-3 border-0 shadow-sm">
+                    <div class="activity-item">
+                        <div class="me-3 h4 text-muted"><i class="bi bi-check-circle"></i></div>
+                        <div class="flex-grow-1"><div class="fw-bold">Payment for Invoice #12345</div><div class="small text-muted">2023-09-01</div></div>
+                        <div class="text-end me-3 fw-bold">-$500.00</div>
+                        <span class="badge-custom badge-paid">paid</span>
+                    </div>
+                    <div class="activity-item">
+                        <div class="me-3 h4 text-muted"><i class="bi bi-file-earmark"></i></div>
+                        <div class="flex-grow-1"><div class="fw-bold">Invoice #12346 generated</div><div class="small text-muted">2023-08-28</div></div>
+                        <div class="text-end me-3 fw-bold">$1,350.00</div>
+                        <span class="badge-custom badge-due">due</span>
+                    </div>
+                    <div class="activity-item">
+                        <div class="me-3 h4 text-muted"><i class="bi bi-arrow-up-circle"></i></div>
+                        <div class="flex-grow-1"><div class="fw-bold">Credit limit increased</div><div class="small text-muted">2023-08-20</div></div>
+                        <div class="text-end me-3 fw-bold">+$2,000.00</div>
+                        <span class="badge-custom badge-completed">completed</span>
+                    </div>
+                     <div class="activity-item">
+                        <div class="me-3 h4 text-muted"><i class="bi bi-x-circle"></i></div>
+                        <div class="flex-grow-1"><div class="fw-bold">Automatic payment failed</div><div class="small text-muted">2023-08-15</div></div>
+                        <div class="text-end me-3 fw-bold">-$75.00</div>
+                        <span class="badge-custom badge-pending">pending</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5 mb-4">
+                <h4 class="mb-3">Important Notices</h4>
+                <div class="notice-card"><span class="notice-title">Upcoming System Maintenance</span><p class="small mb-0 text-muted">Our services will be briefly interrupted on Sep 10th.</p></div>
+                <div class="notice-card"><span class="notice-title">New Feature Alert: Budgeting Tools</span><p class="small mb-0 text-muted">Explore our new budgeting tools to better manage your finances.</p></div>
+                <div class="notice-card"><span class="notice-title">Review Your Statement</span><p class="small mb-0 text-muted">Your monthly statement is available for review and download.</p></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.getElementById('sidebarCollapse').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('active');
+        });
+    </script>
+</body>
+</html>

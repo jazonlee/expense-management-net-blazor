@@ -1,0 +1,77 @@
+CREATE TABLE Customers (
+    CustomerId UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    CustomerNumber NVARCHAR(50) NOT NULL UNIQUE,
+    Name NVARCHAR(200) NOT NULL,
+    BillingAddressLine1 NVARCHAR(200) NOT NULL,
+    BillingAddressLine2 NVARCHAR(200) NULL,
+    BillingCity NVARCHAR(100) NOT NULL,
+    BillingState NVARCHAR(100) NULL,
+    BillingPostalCode NVARCHAR(20) NOT NULL,
+    BillingCountry NVARCHAR(100) NOT NULL,
+    ShippingAddressLine1 NVARCHAR(200) NOT NULL,
+    ShippingAddressLine2 NVARCHAR(200) NULL,
+    ShippingCity NVARCHAR(100) NOT NULL,
+    ShippingState NVARCHAR(100) NULL,
+    ShippingPostalCode NVARCHAR(20) NOT NULL,
+    ShippingCountry NVARCHAR(100) NOT NULL,
+    CreditLimit DECIMAL(18,2) NOT NULL,
+    AvailableCredit DECIMAL(18,2) NOT NULL,
+    CurrentBalance DECIMAL(18,2) NOT NULL
+);
+
+CREATE TABLE Invoices (
+    Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    CustomerId UNIQUEIDENTIFIER NOT NULL,
+    InvoiceNumber NVARCHAR(50) NOT NULL,
+    IssuedDate DATETIME2 NOT NULL,
+    DueDate DATETIME2 NOT NULL,
+    Status NVARCHAR(20) NOT NULL,
+    SubtotalAmount DECIMAL(18,2) NOT NULL,
+    DiscountAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
+    TaxAmount DECIMAL(18,2) NOT NULL,
+    TotalAmount DECIMAL(18,2) NOT NULL,
+    CONSTRAINT FK_Invoices_Customers FOREIGN KEY (CustomerId) REFERENCES Customers(CustomerId)
+);
+
+CREATE TABLE InvoiceItems (
+    Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    InvoiceId UNIQUEIDENTIFIER NOT NULL,
+    Description NVARCHAR(200) NOT NULL,
+    Quantity DECIMAL(18,2) NOT NULL,
+    UnitPrice DECIMAL(18,4) NOT NULL,
+    LineTotal DECIMAL(18,2) NOT NULL,
+    CONSTRAINT FK_InvoiceItems_Invoices FOREIGN KEY (InvoiceId) REFERENCES Invoices(Id)
+);
+
+CREATE TABLE Payments (
+    Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    CustomerId UNIQUEIDENTIFIER NOT NULL,
+    PaymentRef NVARCHAR(100) NOT NULL,
+    [Date] DATETIME2 NOT NULL,
+    Amount DECIMAL(18,2) NOT NULL,
+    [Method] NVARCHAR(50) NOT NULL,
+    ReceiptUrl NVARCHAR(500) NULL,
+    CONSTRAINT FK_Payments_Customers FOREIGN KEY (CustomerId) REFERENCES Customers(CustomerId)
+);
+
+CREATE TABLE Activities (
+    Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    CustomerId UNIQUEIDENTIFIER NOT NULL,
+    Title NVARCHAR(200) NOT NULL,
+    [Date] DATETIME2 NOT NULL,
+    AmountChange DECIMAL(18,2) NOT NULL,
+    Status NVARCHAR(50) NOT NULL,
+    ActivityType NVARCHAR(50) NOT NULL,
+    ReferenceId UNIQUEIDENTIFIER NULL,
+    CONSTRAINT FK_Activities_Customers FOREIGN KEY (CustomerId) REFERENCES Customers(CustomerId)
+);
+
+CREATE TABLE Notifications (
+    Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    Title NVARCHAR(200) NOT NULL,
+    [Message] NVARCHAR(MAX) NOT NULL,
+    [Type] NVARCHAR(50) NOT NULL,
+    StartDate DATETIME2 NOT NULL,
+    EndDate DATETIME2 NULL,
+    IsActive BIT NOT NULL
+);

@@ -1,0 +1,6 @@
+* text=auto
+
+*.cs     diff=csharp
+*.razor  diff=csharp
+*.sql    diff
+*.md     text
