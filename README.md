@@ -41,7 +41,8 @@ Because of this workflow, the repository is traceable: you can go from a require
 - `CustomerPortal.Core/` – domain entities and application layer (DTOs, interfaces)
 - `CustomerPortal.Web/` – Blazor Server app (UI, services, Dapper repositories, SOA endpoint)
 - `CustomerPortal.Tests/` – xUnit tests for repositories and services
-- `specs/001-customer-credit-portal/` – feature specification, plan, tasks, and quickstart
+- `specs/001-customer-credit-portal/` – feature Speckit tooling's specification, plan, tasks, and quickstart
+- `.specify\memory\` - feature Speckit tooling's constitution file
 
 ## Prerequisites
 
