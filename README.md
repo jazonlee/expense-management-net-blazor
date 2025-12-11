@@ -1,6 +1,39 @@
 # Expense Management / Customer Credit Portal
 
 This repository contains a .NET 9 Blazor Server implementation of a Customer Credit Portal. It includes a dashboard, invoices list and detail, payments history, and Statement of Account (SOA) PDF generation.
+Code Generation & Workflow (Speckit + Copilot)
+
+This entire codebase was generated and evolved using the Speckit tooling and GitHub Copilot inside VS Code, following a spec‑driven workflow rather than ad‑hoc coding.
+
+At a high level:
+
+**1. Specification first (spec.md)**
+The feature started from a human‑readable specification in spec.md, describing user stories, functional requirements, success criteria, and edge cases for the Customer Credit Portal (dashboard, invoices, invoice detail, payments, and SOA).
+
+**2. Planning (/speckit.plan)**
+Speckit generated an implementation plan in plan.md, outlining the tech stack (Blazor Server, Dapper, SQL Server Express), project structure, and layering between CustomerPortal.Core, CustomerPortal.Web, and tests.
+
+**3. Task breakdown (tasks.md)**
+Using /speckit.tasks, the plan was turned into a concrete, ordered task list in tasks.md (T001–T0xx), grouped by phases and user stories. Each task references specific files and is tracked with checklist syntax, so you can see exactly which pieces were implemented.
+
+**4. Guided implementation**
+Copilot then implemented the solution by executing those tasks, phase by phase:
+
+- Creating the solution/projects and folder structure.
+- Defining domain entities and DTOs.
+- Implementing Dapper repositories and UnitOfWork.
+- Building Blazor pages/components by porting HTML from design_assets.
+- Adding services (Dashboard, Invoice, Payment) and the QuestPDF‑based SOA generator.
+- Implementing enhancements like New Invoice, Make Payment modals, invoice selection in payment flows, and real SOA PDFs.
+
+**5. Continuous alignment**
+As the code evolved, the Speckit artifacts were kept in sync:
+
+- spec.md was updated to reflect offline payments, invoice‑linked payments, and SOA behavior.
+- tasks.md gained a Phase 8 to track and mark off enhancements like the New Invoice modal and payment entry screens.
+- quickstart.md was refreshed to describe how to run and manually test the implemented flows.
+
+Because of this workflow, the repository is traceable: you can go from a requirement in spec.md → to a task in tasks.md → to the corresponding code in CustomerPortal.Core, CustomerPortal.Web, or CustomerPortal.Tests, and back again.
 
 ## Solution Structure
 
